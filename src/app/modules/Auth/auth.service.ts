@@ -1,3 +1,5 @@
+import { Secret, SignOptions } from "jsonwebtoken";
+import config from "../../../config";
 import { UserStatus } from "../../../generated/prisma";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import prisma from "../../../shared/prisma";
@@ -20,21 +22,23 @@ const loginUser = async (payload: { email: string; password: string }) => {
     throw new Error("Password is incorrect");
   }
 
+  // Token information
+  const jwtPayload = {
+    email: userData.email,
+    role: userData.role,
+  };
+
+  // Access token generate
   const accessToken = jwtHelpers.generateToken(
-    {
-      email: userData.email,
-      role: userData.role,
-    },
-    "abcdefg",
-    "5m"
+    jwtPayload,
+    config.jwt.access_token_secret as Secret,
+    config.jwt.access_token_expires_in as SignOptions["expiresIn"]
   );
+  // Access token generate
   const refreshToken = jwtHelpers.generateToken(
-    {
-      email: userData.email,
-      role: userData.role,
-    },
-    "abcdefgh",
-    "30d"
+    jwtPayload,
+    config.jwt.refresh_token_secret as Secret,
+    config.jwt.refresh_token_expires_in as SignOptions["expiresIn"]
   );
 
   return {
@@ -47,7 +51,10 @@ const loginUser = async (payload: { email: string; password: string }) => {
 const refreshToken = async (token: string) => {
   let decodedData;
   try {
-    decodedData = jwtHelpers.verifyToken(token, "abcdefgh");
+    decodedData = jwtHelpers.verifyToken(
+      token,
+      config.jwt.refresh_token_secret as Secret
+    );
 
     console.log(decodedData);
   } catch (error) {
@@ -60,13 +67,18 @@ const refreshToken = async (token: string) => {
       status: UserStatus.ACTIVE,
     },
   });
+
+  // Token information
+  const jwtPayload = {
+    email: userData.email,
+    role: userData.role,
+  };
+
+  // Access token generate
   const accessToken = jwtHelpers.generateToken(
-    {
-      email: userData.email,
-      role: userData.role,
-    },
-    "abcdefg",
-    "5m"
+    jwtPayload,
+    config.jwt.access_token_secret as Secret,
+    config.jwt.access_token_expires_in as SignOptions["expiresIn"]
   );
   return {
     accessToken,
