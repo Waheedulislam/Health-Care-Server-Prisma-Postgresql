@@ -10,17 +10,20 @@ import ApiError from "../../Errors/apiError";
 import httpStatus from "http-status-codes";
 
 const loginUser = async (payload: { email: string; password: string }) => {
+  console.log("payload", payload);
   const userData = await prisma.user.findFirstOrThrow({
     where: {
       email: payload.email,
       status: UserStatus.ACTIVE,
     },
   });
+  console.log("find data", userData);
 
   const isCorrectPassword: boolean = await bcrypt.compare(
     payload.password,
     userData.password
   );
+  console.log(isCorrectPassword);
   if (!isCorrectPassword) {
     throw new Error("Password is incorrect");
   }

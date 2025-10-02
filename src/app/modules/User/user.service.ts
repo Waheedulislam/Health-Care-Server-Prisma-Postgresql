@@ -1,9 +1,20 @@
-import { UserRole } from "../../../generated/prisma";
+import {
+  Admin,
+  Doctor,
+  Patient,
+  Prisma,
+  UserRole,
+} from "../../../generated/prisma";
 import bcrypt from "bcrypt";
 import { fileUploader } from "../../../helpers/fileUploader";
 import prisma from "../../../shared/prisma";
+import { IFile } from "../../interfaces/file";
+import { Request } from "express";
+import { IPaginationOption } from "../../interfaces/pagination";
+import { calculatePagination } from "../../../helpers/paginationHelper";
+import { userSearchAbleFields } from "./user.constant";
 
-const createAdmin = async (req: any) => {
+const createAdmin = async (req: Request): Promise<Admin> => {
   const file = req.file;
   if (file) {
     const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
@@ -51,7 +62,167 @@ const createAdmin = async (req: any) => {
   // });
   // return result;
 };
+const createDoctor = async (req: Request): Promise<Doctor> => {
+  const file = req.file as IFile;
+  if (file) {
+    const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
+    req.body.doctor.profilePhoto = uploadToCloudinary?.secure_url;
+  }
+
+  // after image upload validation
+  const hashedPassword: string = await bcrypt.hash(req.body.password, 12);
+
+  const userData = {
+    email: req.body.doctor.email,
+    password: hashedPassword,
+    role: UserRole.DOCTOR,
+  };
+  const result = await prisma.$transaction(async (transactionClient) => {
+    await transactionClient.user.create({
+      data: userData,
+    });
+
+    const createdDoctorData = await transactionClient.doctor.create({
+      data: req.body.doctor,
+    });
+    return createdDoctorData;
+  });
+  return result;
+};
+const createPatient = async (req: Request): Promise<Patient> => {
+  const file = req.file as IFile;
+  if (file) {
+    const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
+    req.body.patient.profilePhoto = uploadToCloudinary?.secure_url;
+  }
+
+  // after image upload validation
+  const hashedPassword: string = await bcrypt.hash(req.body.password, 12);
+
+  const userData = {
+    email: req.body.patient.email,
+    password: hashedPassword,
+    role: UserRole.PATIENT,
+  };
+  const result = await prisma.$transaction(async (transactionClient) => {
+    await transactionClient.user.create({
+      data: userData,
+    });
+
+    const createdPatientData = await transactionClient.patient.create({
+      data: req.body.patient,
+    });
+    return createdPatientData;
+  });
+  return result;
+};
+
+const getAllUser = async (params: any, options: IPaginationOption) => {
+  const { searchTerm, ...filterData } = params;
+
+  const { limit, skip, page } = calculatePagination(options);
+
+  const andCondition: Prisma.UserWhereInput[] = [];
+
+  if (params.searchTerm) {
+    andCondition.push({
+      OR: userSearchAbleFields.map((field) => ({
+        [field]: {
+          contains: params.searchTerm,
+          mode: "insensitive",
+        },
+      })),
+    });
+  }
+
+  if (Object.keys(filterData).length > 0) {
+    andCondition.push({
+      AND: Object.keys(filterData).map((key) => ({
+        [key]: {
+          equals: (filterData as any)[key],
+        },
+      })),
+    });
+  }
+
+  const whereConditions: Prisma.UserWhereInput =
+    andCondition.length > 0 ? { AND: andCondition } : {};
+
+  const result = await prisma.user.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? {
+            [options.sortBy]: options.sortOrder,
+          }
+        : {
+            createdAt: "desc",
+          },
+    // select: {
+    //   id: true,
+    //   email: true,
+    //   role: true,
+    //   needPasswordChange: true,
+    //   status: true,
+    //   createdAt: true,
+    //   updatedAt: true,
+    // },
+    // include: {
+    // admin: true,
+    // patient: true,
+    // doctor: true,
+    // },
+
+    // select and include ak shate use korte ay babe korte hobe
+    // select: {
+    //   id: true,
+    //   email: true,
+    //   role: true,
+    //   needPasswordChange: true,
+    //   status: true,
+    //   createdAt: true,
+    //   updatedAt: true,
+    //   admin: true,
+    //   patient: true,
+    //   doctor: true,
+    // },
+  });
+
+  const total = await prisma.user.count({
+    where: whereConditions,
+  });
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: result,
+  };
+};
+
+const changeProfileStatus = async (id: string, status: UserRole) => {
+  const userData = await prisma.user.findFirstOrThrow({
+    where: {
+      id,
+    },
+  });
+
+  const updatedUserStatus = await prisma.user.update({
+    where: {
+      id,
+    },
+    data: status,
+  });
+  return updatedUserStatus;
+};
 
 export const userServices = {
   createAdmin,
+  createDoctor,
+  createPatient,
+  getAllUser,
+  changeProfileStatus,
 };
