@@ -160,19 +160,19 @@ const getAllUser = async (params: any, options: IPaginationOption) => {
         : {
             createdAt: "desc",
           },
-    // select: {
-    //   id: true,
-    //   email: true,
-    //   role: true,
-    //   needPasswordChange: true,
-    //   status: true,
-    //   createdAt: true,
-    //   updatedAt: true,
-    // },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      needPasswordChange: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
     // include: {
-    // admin: true,
-    // patient: true,
-    // doctor: true,
+    //   admin: true,
+    //   patient: true,
+    //   doctor: true,
     // },
 
     // select and include ak shate use korte ay babe korte hobe
@@ -219,10 +219,63 @@ const changeProfileStatus = async (id: string, status: UserRole) => {
   return updatedUserStatus;
 };
 
+const getMyProfile = async (user) => {
+  const userInfo = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: user.email,
+    },
+    select: {
+      id: true,
+      email: true,
+      needPasswordChange: true,
+      role: true,
+      status: true,
+    },
+  });
+
+  let profileInfo;
+
+  // super admin
+  if (userInfo?.role === UserRole.SUPER_ADMIN) {
+    profileInfo = await prisma.admin.findUnique({
+      where: {
+        email: userInfo.email,
+      },
+    });
+  }
+  // admin
+  if (userInfo?.role === UserRole.ADMIN) {
+    profileInfo = await prisma.admin.findUnique({
+      where: {
+        email: userInfo.email,
+      },
+    });
+  }
+  // doctor
+  if (userInfo?.role === UserRole.DOCTOR) {
+    profileInfo = await prisma.doctor.findUnique({
+      where: {
+        email: userInfo.email,
+      },
+    });
+  }
+  // patient
+  if (userInfo?.role === UserRole.DOCTOR) {
+    profileInfo = await prisma.patient.findUnique({
+      where: {
+        email: userInfo.email,
+      },
+    });
+  }
+
+  return { ...userInfo, ...profileInfo };
+};
+
 export const userServices = {
   createAdmin,
   createDoctor,
   createPatient,
   getAllUser,
   changeProfileStatus,
+  getMyProfile,
 };

@@ -5,25 +5,23 @@ import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import prisma from "../../../shared/prisma";
 
 import bcrypt from "bcrypt";
-import emailSender from "./EmailSender";
 import ApiError from "../../Errors/apiError";
 import httpStatus from "http-status-codes";
+import emailSender from "./emailSender";
 
 const loginUser = async (payload: { email: string; password: string }) => {
-  console.log("payload", payload);
   const userData = await prisma.user.findFirstOrThrow({
     where: {
       email: payload.email,
       status: UserStatus.ACTIVE,
     },
   });
-  console.log("find data", userData);
 
   const isCorrectPassword: boolean = await bcrypt.compare(
     payload.password,
     userData.password
   );
-  console.log(isCorrectPassword);
+  // console.log(isCorrectPassword);
   if (!isCorrectPassword) {
     throw new Error("Password is incorrect");
   }
@@ -64,7 +62,7 @@ const refreshToken = async (token: string) => {
   } catch (error) {
     throw new Error("You are not authorized");
   }
-
+  console.log("ddd", decodedData);
   const userData = await prisma.user.findUniqueOrThrow({
     where: {
       email: decodedData.email,
@@ -84,6 +82,7 @@ const refreshToken = async (token: string) => {
     config.jwt.access_token_secret as Secret,
     config.jwt.access_token_expires_in as SignOptions["expiresIn"]
   );
+  console.log(accessToken);
   return {
     accessToken,
     needPasswordChange: userData.needPasswordChange,

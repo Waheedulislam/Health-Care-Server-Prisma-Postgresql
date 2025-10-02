@@ -29,17 +29,12 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
 
   const result = await authServices.refreshToken(refreshToken);
-
+  console.log(result);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Access Token generated successfully",
     data: result,
-
-    // data: {
-    //   accessToken: result.accessToken,
-    //   needPasswordChange: result.needPasswordChange,
-    // },
   });
 });
 

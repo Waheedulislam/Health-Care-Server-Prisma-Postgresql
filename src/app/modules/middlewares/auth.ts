@@ -19,8 +19,8 @@ export const auth = (...roles: string[]) => {
       const verifiedUser = jwtHelpers.verifyToken(
         token,
         config.jwt.access_token_secret as Secret
-      );
-      req.user = verifiedUser;
+      ); // ay khan a token verified kore and token decode kore dicce
+      req.user = verifiedUser; // are ay khan a verified decoded token req.user object a set kora hocce..
       // console.log(verifiedUser);
 
       if (roles.length && !roles.includes(verifiedUser.role)) {

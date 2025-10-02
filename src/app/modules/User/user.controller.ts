@@ -61,10 +61,23 @@ const changeProfileStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getMyProfile = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user; // Here the req.user data is getting from controller's auth middleware
+
+  const result = await userServices.getMyProfile(user);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "My profile data fetched!",
+    data: result,
+  });
+});
+
 export const userController = {
   createAdmin,
   createDoctor,
   createPatient,
   getAllUsers,
   changeProfileStatus,
+  getMyProfile,
 };
