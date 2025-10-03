@@ -4,6 +4,7 @@ import {
   Patient,
   Prisma,
   UserRole,
+  UserStatus,
 } from "../../../generated/prisma";
 import bcrypt from "bcrypt";
 import { fileUploader } from "../../../helpers/fileUploader";
@@ -223,6 +224,7 @@ const getMyProfile = async (user) => {
   const userInfo = await prisma.user.findUniqueOrThrow({
     where: {
       email: user.email,
+      status: UserStatus.ACTIVE,
     },
     select: {
       id: true,
@@ -271,6 +273,62 @@ const getMyProfile = async (user) => {
   return { ...userInfo, ...profileInfo };
 };
 
+const updateMyProfile = async (user: any, req: Request) => {
+  const userInfo = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: user.email,
+      status: UserStatus.ACTIVE,
+    },
+  });
+  const file = req.file as IFile;
+
+  if (file) {
+    const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
+    req.body.profilePhoto = uploadToCloudinary?.secure_url;
+  }
+
+  let profileInfo;
+
+  // super admin
+  if (userInfo?.role === UserRole.SUPER_ADMIN) {
+    profileInfo = await prisma.admin.update({
+      where: {
+        email: userInfo.email,
+      },
+      data: req.body,
+    });
+  }
+  // admin
+  if (userInfo?.role === UserRole.ADMIN) {
+    profileInfo = await prisma.admin.update({
+      where: {
+        email: userInfo.email,
+      },
+      data: req.body,
+    });
+  }
+  // doctor
+  if (userInfo?.role === UserRole.DOCTOR) {
+    profileInfo = await prisma.doctor.update({
+      where: {
+        email: userInfo.email,
+      },
+      data: req.body,
+    });
+  }
+  // patient
+  if (userInfo?.role === UserRole.DOCTOR) {
+    profileInfo = await prisma.patient.update({
+      where: {
+        email: userInfo.email,
+      },
+      data: req.body,
+    });
+  }
+
+  return { ...profileInfo };
+};
+
 export const userServices = {
   createAdmin,
   createDoctor,
@@ -278,4 +336,5 @@ export const userServices = {
   getAllUser,
   changeProfileStatus,
   getMyProfile,
+  updateMyProfile,
 };

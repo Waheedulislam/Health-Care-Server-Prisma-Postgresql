@@ -4,6 +4,7 @@ import { auth } from "../middlewares/auth";
 import { UserRole } from "../../../generated/prisma";
 import { fileUploader } from "../../../helpers/fileUploader";
 import { userValidation } from "./user.validation";
+import { validateRequest } from "../middlewares/validateRequest";
 const router = express.Router();
 
 router.get(
@@ -46,6 +47,21 @@ router.post(
   }
 );
 
-router.patch("/:id/status", userController.changeProfileStatus);
+router.patch(
+  "/:id/status",
+  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  validateRequest(userValidation.updateStatus),
+  userController.changeProfileStatus
+);
+
+router.patch(
+  "/update-my-profile",
+  auth(UserRole.ADMIN, UserRole.DOCTOR, UserRole.PATIENT, UserRole.SUPER_ADMIN),
+  fileUploader.upload.single("file"),
+  (req: Request, res: Response, next: NextFunction) => {
+    req.body = JSON.parse(req.body.data);
+    return userController.updateMyProfile(req, res, next);
+  }
+);
 
 export const userRoutes = router;
