@@ -1,4 +1,3 @@
-import { promises } from "dns";
 import { Admin, Prisma, UserStatus } from "../../../generated/prisma";
 import { calculatePagination } from "../../../helpers/paginationHelper";
 import prisma from "../../../shared/prisma";
