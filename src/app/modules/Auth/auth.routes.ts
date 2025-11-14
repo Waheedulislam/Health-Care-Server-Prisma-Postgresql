@@ -5,6 +5,14 @@ import { UserRole } from "../../../generated/prisma";
 
 const router = express.Router();
 
+// 🔹Login route
+// প্রথমবার access token জেনারেট করে
+// refresh token কুকিতে সেট করে
+
+// 🔹 Refresh Token route
+// কুকির refresh token verify করে
+// নতুন access token জেনারেট করে (পুরনো expired হয়ে গেছে)
+
 router.post("/login", authController.loginUser);
 router.post("/refresh-token", authController.refreshToken);
 router.post(
